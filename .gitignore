@@ -2,3 +2,4 @@
 .qlot/
 *~
 .DS_Store
+qlfile.lock

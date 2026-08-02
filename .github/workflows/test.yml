@@ -6,6 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Same Lisp bootstrap as egao1980/cl-repository (.github/workflows/test.yml):
+# Roswell install-for-ci → pinned sbcl-bin → qlot → qlot exec ros.
+env:
+  SBCL_VERSION: 2.4.11
+
 jobs:
   test:
     strategy:
@@ -14,40 +19,29 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
-    env:
-      LISP: sbcl-bin
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Common Lisp (Roswell)
-        uses: 40ants/setup-lisp@v4
-        with:
-          roswell-version: latest
-
-      - name: Install Quicklisp deps
-        shell: bash
-        run: ros install rove
-
-      - name: Protocol tests
+      - name: Install Roswell
         shell: bash
         run: |
-          ros -e '(asdf:load-asd #p"event-protocol.asd")' \
-              -e '(asdf:test-system "event-protocol")' \
-              -q
+          curl -sL https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | bash
+          echo "$HOME/.roswell/bin" >> "$GITHUB_PATH"
 
-  test-linux-image:
-    runs-on: ubuntu-latest
-    container:
-      image: fukamachi/sbcl:latest-ubuntu
-    steps:
-      - name: QL deps
-        run: sbcl --non-interactive --eval '(ql:quickload :rove :silent t)' --quit
-
-      - uses: actions/checkout@v4
-
-      - name: Protocol tests
+      - name: Install SBCL
+        shell: bash
         run: |
-          sbcl --non-interactive \
-            --eval '(asdf:load-asd #p"event-protocol.asd")' \
-            --eval '(asdf:test-system "event-protocol")'
+          ros install "sbcl-bin/$SBCL_VERSION"
+          ros use "sbcl-bin/$SBCL_VERSION"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          ros install qlot
+          qlot install
+
+      - name: Test event-protocol
+        shell: bash
+        run: |
+          qlot exec ros -e '(asdf:test-system "event-protocol")'
