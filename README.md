@@ -2,15 +2,17 @@
 
 MIT. Tiny CLOS **event-loop protocol** for [cl-stack](https://github.com/egao1980/cl-stack).
 
-Generics + conditions only — no natives here. Backends (`libuv`, `libev`) and overlays ship separately.
+Generics + conditions + shared conformance suite. **No natives here.**
 
-**Brief (locked):** [cl-stack `docs/capabilities/event-protocol.md`](https://github.com/egao1980/cl-stack/blob/main/docs/capabilities/event-protocol.md)
+| Layer | Repo |
+|-------|------|
+| Protocol | this repo |
+| Default backend (Windows-primary) | [`egao1980/event-backend-libuv`](https://github.com/egao1980/event-backend-libuv) |
+| Second backend (Unix) | [`egao1980/event-backend-libev`](https://github.com/egao1980/event-backend-libev) |
 
-| Decision | Choice |
-|----------|--------|
-| App DX | Promises (facade; not this system) |
-| Default backend | libuv |
-| Second backend | libev |
+**Brief:** [cl-stack `docs/capabilities/event-protocol.md`](https://github.com/egao1980/cl-stack/blob/main/docs/capabilities/event-protocol.md)
+
+App DX (promises) lives in a later facade — backends stay callback + cancel tokens.
 
 ## Load / test
 
@@ -19,4 +21,13 @@ sbcl --eval '(asdf:load-asd "event-protocol.asd")' \
      --eval '(asdf:test-system "event-protocol")'
 ```
 
-Tracking: [egao1980/cl-stack#15](https://github.com/egao1980/cl-stack/issues/15) (parent [#2](https://github.com/egao1980/cl-stack/issues/2)).
+Conformance suite: ASDF system `event-protocol/conformance` (set
+`event-protocol/conformance:*test-backend-maker*` from a backend test system).
+Provenance: [`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md).
+
+## CI
+
+Protocol-only jobs (Roswell via [40ants/setup-lisp](https://github.com/40ants/setup-lisp);
+Linux also `fukamachi/sbcl` image). Backend CI lives in the backend repos.
+
+Tracking: [cl-stack#15](https://github.com/egao1980/cl-stack/issues/15) · [#2](https://github.com/egao1980/cl-stack/issues/2).

@@ -1,0 +1,53 @@
+name: Test
+
+on:
+  push:
+    branches: [main, "cursor/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+    env:
+      LISP: sbcl-bin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Common Lisp (Roswell)
+        uses: 40ants/setup-lisp@v4
+        with:
+          roswell-version: latest
+
+      - name: Install Quicklisp deps
+        shell: bash
+        run: ros install rove
+
+      - name: Protocol tests
+        shell: bash
+        run: |
+          ros -e '(asdf:load-asd #p"event-protocol.asd")' \
+              -e '(asdf:test-system "event-protocol")' \
+              -q
+
+  test-linux-image:
+    runs-on: ubuntu-latest
+    container:
+      image: fukamachi/sbcl:latest-ubuntu
+    steps:
+      - name: QL deps
+        run: sbcl --non-interactive --eval '(ql:quickload :rove :silent t)' --quit
+
+      - uses: actions/checkout@v4
+
+      - name: Protocol tests
+        run: |
+          sbcl --non-interactive \
+            --eval '(asdf:load-asd #p"event-protocol.asd")' \
+            --eval '(asdf:test-system "event-protocol")'
