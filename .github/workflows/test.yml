@@ -6,9 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Lisp bootstrap mirrors egao1980/cl-repository (install-for-ci → sbcl-bin → qlot).
-# Windows hosted runners lack pacman, so Roswell comes from the official release zip
-# (see roswell/roswell#539) instead of install-for-ci.sh.
+# Lisp bootstrap mirrors egao1980/cl-repository on Unix (install-for-ci → sbcl-bin → qlot).
+# Windows: Roswell release zip (no pacman); skip qlot — qlot 1.8 uses sb-posix:symlink
+# which SBCL does not export on Windows.
 env:
   SBCL_VERSION: 2.4.11
   ROSWELL_VERSION: "26.02.116"
@@ -51,13 +51,28 @@ jobs:
           ros install "sbcl-bin/$SBCL_VERSION"
           ros use "sbcl-bin/$SBCL_VERSION"
 
-      - name: Install dependencies
+      - name: Install dependencies (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           ros install qlot
           qlot install
 
-      - name: Test event-protocol
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          ros install rove
+
+      - name: Test event-protocol (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           qlot exec ros -S . -e '(asdf:test-system "event-protocol")'
+
+      - name: Test event-protocol (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          export CL_SOURCE_REGISTRY="$(pwd)//:"
+          ros -S . -e '(asdf:test-system "event-protocol")' -q
