@@ -27,7 +27,8 @@ Provenance: [`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md)
 
 ## CI
 
-Protocol-only jobs (Roswell via [40ants/setup-lisp](https://github.com/40ants/setup-lisp);
-Linux also `fukamachi/sbcl` image). Backend CI lives in the backend repos.
+Same bootstrap as [`cl-repository`](https://github.com/egao1980/cl-repository): Roswell
+`install-for-ci.sh` → pinned `sbcl-bin` → `qlot install` → `qlot exec ros`. Backend CI
+lives in the backend repos.
 
 Tracking: [cl-stack#15](https://github.com/egao1980/cl-stack/issues/15) · [#2](https://github.com/egao1980/cl-stack/issues/2).
