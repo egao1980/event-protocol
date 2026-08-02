@@ -18,3 +18,23 @@
   :components ((:file "package")
                (:file "protocol-test"))
   :perform (test-op (o c) (symbol-call :rove :run c)))
+
+(defsystem "event-protocol/conformance"
+  :description "Rove conformance suite × event backends (libuv required; libev Unix)"
+  :depends-on ("event-protocol" "event-backend-libuv" "rove")
+  :pathname "tests/conformance"
+  :serial t
+  :components ((:file "package")
+               (:file "suite")
+               (:file "libuv-test"))
+  :perform (test-op (o c) (symbol-call :rove :run c)))
+
+(defsystem "event-protocol/conformance/libev"
+  :description "Run conformance suite against libev (Unix)"
+  :depends-on ("event-protocol/conformance" "event-backend-libev")
+  :pathname "tests/conformance"
+  :serial t
+  :components ((:file "package")
+               (:file "suite")
+               (:file "libev-test"))
+  :perform (test-op (o c) (symbol-call :rove :run c)))

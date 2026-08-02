@@ -1,0 +1,95 @@
+name: Test
+
+on:
+  push:
+    branches: [main, "cursor/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-amd64
+          - os: macos-latest
+            label: darwin-arm64
+          - os: windows-latest
+            label: windows-amd64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libuv/libev (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev libev-dev build-essential
+
+      - name: Install libuv/libev (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install libuv libev
+          echo "HOMEBREW_PREFIX=$(brew --prefix)" >> "$GITHUB_ENV"
+
+      - name: Install libuv (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Build from source so headers exist for grovel
+          choco install cmake -y
+          .\scripts\build-libuv.ps1
+          $inc = Get-ChildItem -Path build -Recurse -Directory -Filter include |
+            Where-Object { Test-Path (Join-Path $_.FullName "uv.h") } |
+            Select-Object -First 1 -ExpandProperty FullName
+          "EVENT_PROTOCOL_UV_INCLUDE=$inc" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $lib = Resolve-Path "lib\windows-amd64"
+          "EVENT_PROTOCOL_NATIVE=$lib" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "Path=$lib;$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Install Roswell + SBCL (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          curl -sL https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | bash
+          echo "$HOME/.roswell/bin" >> "$GITHUB_PATH"
+          ros install sbcl-bin
+          ros use sbcl-bin
+          ros install cffi
+          ros install rove
+
+      - name: Install SBCL (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install sbcl -y
+          $sbcl = "C:\Program Files\Steel Bank Common Lisp"
+          "Path=$sbcl;$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Protocol tests
+        shell: bash
+        run: |
+          sbcl --non-interactive \
+            --eval '(asdf:load-asd "event-protocol.asd")' \
+            --eval '(asdf:test-system "event-protocol")'
+
+      - name: Conformance libuv
+        shell: bash
+        run: |
+          export HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
+          sbcl --non-interactive \
+            --eval '(asdf:load-asd "event-protocol.asd")' \
+            --eval '(asdf:load-asd "event-backend-libuv.asd")' \
+            --eval '(asdf:test-system "event-protocol/conformance")'
+
+      - name: Conformance libev (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          export HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
+          sbcl --non-interactive \
+            --eval '(asdf:load-asd "event-protocol.asd")' \
+            --eval '(asdf:load-asd "event-backend-libev.asd")' \
+            --eval '(asdf:test-system "event-protocol/conformance/libev")'
