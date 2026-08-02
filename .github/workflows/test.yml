@@ -6,10 +6,12 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Same Lisp bootstrap as egao1980/cl-repository (.github/workflows/test.yml):
-# Roswell install-for-ci → pinned sbcl-bin → qlot → qlot exec ros.
+# Lisp bootstrap mirrors egao1980/cl-repository (install-for-ci → sbcl-bin → qlot).
+# Windows hosted runners lack pacman, so Roswell comes from the official release zip
+# (see roswell/roswell#539) instead of install-for-ci.sh.
 env:
   SBCL_VERSION: 2.4.11
+  ROSWELL_VERSION: "26.02.116"
 
 jobs:
   test:
@@ -23,11 +25,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Roswell
+      - name: Install Roswell (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           curl -sL https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | bash
           echo "$HOME/.roswell/bin" >> "$GITHUB_PATH"
+
+      - name: Install Roswell (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl -sL "https://github.com/roswell/roswell/releases/download/v${ROSWELL_VERSION}/roswell_${ROSWELL_VERSION}_amd64.zip" \
+            -o /tmp/roswell.zip
+          rm -rf /c/roswell
+          mkdir -p /c/roswell
+          unzip -qo /tmp/roswell.zip -d /c/roswell
+          echo "/c/roswell/roswell" >> "$GITHUB_PATH"
+          echo "$HOME/.roswell/bin" >> "$GITHUB_PATH"
+          /c/roswell/roswell/ros.exe version
 
       - name: Install SBCL
         shell: bash
