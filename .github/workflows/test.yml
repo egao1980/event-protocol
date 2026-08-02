@@ -60,4 +60,4 @@ jobs:
       - name: Test event-protocol
         shell: bash
         run: |
-          qlot exec ros -e '(asdf:test-system "event-protocol")'
+          qlot exec ros -S . -e '(asdf:test-system "event-protocol")'
