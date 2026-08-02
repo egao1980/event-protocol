@@ -25,10 +25,18 @@ Conformance suite: ASDF system `event-protocol/conformance` (set
 `event-protocol/conformance:*test-backend-maker*` from a backend test system).
 Provenance: [`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md).
 
+## Adding backend C later
+
+1. New repo `event-backend-<name>` depending on `event-protocol` (+ natives/overlays as needed).
+2. Implement the generics on an `event-backend` subclass (`run` / `defer` / `sleep*` / `cancel` / `register-io` / `wake`).
+3. Test system sets `event-protocol/conformance:*test-backend-maker*` to a zero-arg thunk that returns a fresh backend, then `(asdf:test-system …)` / `rove:run` of `event-protocol/conformance`.
+4. CI matrix: checkout this repo as a sibling (or qlot `local`), install natives, run conformance. Optional OCI publish via cl-repository reusable workflow (`native-<os>-<arch>` artifacts; nested `lib/` + `grovel/` when shipping `cffi-grovel-output`).
+5. Document the system in the cl-stack event brief; do **not** add a plugin registry.
+
 ## CI
 
 Same bootstrap as [`cl-repository`](https://github.com/egao1980/cl-repository): Roswell
 `install-for-ci.sh` → pinned `sbcl-bin` → `qlot install` → `qlot exec ros`. Backend CI
 lives in the backend repos.
 
-Tracking: [cl-stack#15](https://github.com/egao1980/cl-stack/issues/15) · [#2](https://github.com/egao1980/cl-stack/issues/2).
+Tracking: [cl-stack#15](https://github.com/egao1980/cl-stack/issues/15) · [#2](https://github.com/egao1980/cl-stack/issues/2) · [#18](https://github.com/egao1980/cl-stack/issues/18).
