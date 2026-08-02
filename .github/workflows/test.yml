@@ -7,6 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ── Hosted runners: 40ants/setup-lisp (Roswell) — linux / darwin / windows ──
+  # Bare `sbcl` is NOT on PATH after Roswell; use `ros -e`. Windows needs ASDF/QL too.
   test:
     strategy:
       fail-fast: false
@@ -20,6 +22,9 @@ jobs:
             label: windows-amd64
 
     runs-on: ${{ matrix.os }}
+    env:
+      LISP: sbcl-bin
+
     steps:
       - uses: actions/checkout@v4
 
@@ -35,12 +40,11 @@ jobs:
           brew install libuv libev
           echo "HOMEBREW_PREFIX=$(brew --prefix)" >> "$GITHUB_ENV"
 
-      - name: Install libuv (Windows)
+      - name: Install libuv + toolchain (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Build from source so headers exist for grovel
-          choco install cmake -y
+          choco install cmake mingw -y
           .\scripts\build-libuv.ps1
           $inc = Get-ChildItem -Path build -Recurse -Directory -Filter include |
             Where-Object { Test-Path (Join-Path $_.FullName "uv.h") } |
@@ -48,48 +52,69 @@ jobs:
           "EVENT_PROTOCOL_UV_INCLUDE=$inc" | Out-File -FilePath $env:GITHUB_ENV -Append
           $lib = Resolve-Path "lib\windows-amd64"
           "EVENT_PROTOCOL_NATIVE=$lib" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "Path=$lib;$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "Path=$lib;C:\ProgramData\mingw64\mingw64\bin;$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Install Roswell + SBCL (Unix)
-        if: runner.os != 'Windows'
+      - name: Setup Common Lisp (Roswell)
+        uses: 40ants/setup-lisp@v4
+        with:
+          roswell-version: latest
+
+      - name: Install Quicklisp deps
+        shell: bash
         run: |
-          curl -sL https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | bash
-          echo "$HOME/.roswell/bin" >> "$GITHUB_PATH"
-          ros install sbcl-bin
-          ros use sbcl-bin
           ros install cffi
           ros install rove
-
-      - name: Install SBCL (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          choco install sbcl -y
-          $sbcl = "C:\Program Files\Steel Bank Common Lisp"
-          "Path=$sbcl;$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Protocol tests
         shell: bash
         run: |
-          sbcl --non-interactive \
-            --eval '(asdf:load-asd "event-protocol.asd")' \
-            --eval '(asdf:test-system "event-protocol")'
+          ros -e '(asdf:load-asd #p"event-protocol.asd")' \
+              -e '(asdf:test-system "event-protocol")' \
+              -q
 
       - name: Conformance libuv
         shell: bash
         run: |
           export HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
-          sbcl --non-interactive \
-            --eval '(asdf:load-asd "event-protocol.asd")' \
-            --eval '(asdf:load-asd "event-backend-libuv.asd")' \
-            --eval '(asdf:test-system "event-protocol/conformance")'
+          ros -e '(asdf:load-asd #p"event-protocol.asd")' \
+              -e '(asdf:load-asd #p"event-backend-libuv.asd")' \
+              -e '(asdf:test-system "event-protocol/conformance")' \
+              -q
 
       - name: Conformance libev (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           export HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
+          ros -e '(asdf:load-asd #p"event-protocol.asd")' \
+              -e '(asdf:load-asd #p"event-backend-libev.asd")' \
+              -e '(asdf:test-system "event-protocol/conformance/libev")' \
+              -q
+
+  # ── Linux test image (reproducible; no Roswell bootstrap) ──
+  # Common CL CI image: https://hub.docker.com/r/fukamachi/sbcl
+  test-linux-image:
+    runs-on: ubuntu-latest
+    container:
+      image: fukamachi/sbcl:latest-ubuntu
+    steps:
+      - name: Install natives + QL deps
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            libuv1-dev libev-dev build-essential git ca-certificates
           sbcl --non-interactive \
-            --eval '(asdf:load-asd "event-protocol.asd")' \
-            --eval '(asdf:load-asd "event-backend-libev.asd")' \
+            --eval '(ql:quickload (:cffi :rove) :silent t)' \
+            --quit
+
+      - uses: actions/checkout@v4
+
+      - name: Protocol + conformance (libuv + libev)
+        run: |
+          sbcl --non-interactive \
+            --eval '(asdf:load-asd #p"event-protocol.asd")' \
+            --eval '(asdf:load-asd #p"event-backend-libuv.asd")' \
+            --eval '(asdf:load-asd #p"event-backend-libev.asd")' \
+            --eval '(asdf:test-system "event-protocol")' \
+            --eval '(asdf:test-system "event-protocol/conformance")' \
             --eval '(asdf:test-system "event-protocol/conformance/libev")'

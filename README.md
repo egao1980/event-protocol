@@ -42,6 +42,15 @@ sbcl --eval '(asdf:load-asd "event-backend-libev.asd")' \
      --eval '(asdf:test-system "event-protocol/conformance/libev")'
 ```
 
+## CI env
+
+| Job | Env | Notes |
+|-----|-----|-------|
+| `test` | [40ants/setup-lisp](https://github.com/40ants/setup-lisp) + Roswell | linux / darwin / **windows** — invoke via `ros -e`, not bare `sbcl` |
+| `test-linux-image` | `fukamachi/sbcl:latest-ubuntu` container | Reproducible Linux image; apt `libuv1-dev`/`libev-dev` |
+
+Dev Containers: org feature [`ghcr.io/egao1980/features/roswell`](https://github.com/egao1980/features) (same Roswell story locally).
+
 ## Conformance provenance
 
 Case ideas from **CPython asyncio** (PSF) and **libuv / Node** (MIT) — see

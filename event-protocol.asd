@@ -17,7 +17,9 @@
   :serial t
   :components ((:file "package")
                (:file "protocol-test"))
-  :perform (test-op (o c) (symbol-call :rove :run c)))
+  :perform (test-op (o c)
+             (unless (symbol-call :rove :run c)
+               (error "tests failed for ~A" (component-name c)))))
 
 (defsystem "event-protocol/conformance"
   :description "Rove conformance suite × event backends (libuv required; libev Unix)"
@@ -31,7 +33,9 @@
                (:file "wake-thread")
                (:file "libuv-loop")
                (:file "libuv-test"))
-  :perform (test-op (o c) (symbol-call :rove :run c)))
+  :perform (test-op (o c)
+             (unless (symbol-call :rove :run c)
+               (error "tests failed for ~A" (component-name c)))))
 
 (defsystem "event-protocol/conformance/libev"
   :description "Run conformance suite against libev (Unix)"
@@ -45,4 +49,6 @@
                (:file "wake-thread")
                (:file "libuv-loop")
                (:file "libev-test"))
-  :perform (test-op (o c) (symbol-call :rove :run c)))
+  :perform (test-op (o c)
+             (unless (symbol-call :rove :run c)
+               (error "tests failed for ~A" (component-name c)))))
