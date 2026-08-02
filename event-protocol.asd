@@ -21,9 +21,10 @@
              (unless (symbol-call :rove :run c)
                (error "tests failed for ~A" (component-name c)))))
 
+;;; Shared Rove suite — backends set *TEST-BACKEND-MAKER* and call (rove:run this).
 (defsystem "event-protocol/conformance"
-  :description "Rove conformance suite × event backends (libuv required; libev Unix)"
-  :depends-on ("event-protocol" "event-backend-libuv" "rove")
+  :description "Backend-agnostic event-protocol conformance suite (Rove)"
+  :depends-on ("event-protocol" "rove")
   :pathname "tests/conformance"
   :serial t
   :components ((:file "package")
@@ -31,24 +32,5 @@
                (:file "asyncio-call")
                (:file "asyncio-io")
                (:file "wake-thread")
-               (:file "libuv-loop")
-               (:file "libuv-test"))
-  :perform (test-op (o c)
-             (unless (symbol-call :rove :run c)
-               (error "tests failed for ~A" (component-name c)))))
-
-(defsystem "event-protocol/conformance/libev"
-  :description "Run conformance suite against libev (Unix)"
-  :depends-on ("event-protocol/conformance" "event-backend-libev")
-  :pathname "tests/conformance"
-  :serial t
-  :components ((:file "package")
-               (:file "suite")
-               (:file "asyncio-call")
-               (:file "asyncio-io")
-               (:file "wake-thread")
-               (:file "libuv-loop")
-               (:file "libev-test"))
-  :perform (test-op (o c)
-             (unless (symbol-call :rove :run c)
-               (error "tests failed for ~A" (component-name c)))))
+               (:file "libuv-loop")))
+  ;; Backends set *test-backend-maker* then (rove:run (asdf:find-system "event-protocol/conformance")).

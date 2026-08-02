@@ -7,19 +7,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Hosted runners: 40ants/setup-lisp (Roswell) — linux / darwin / windows ──
-  # Bare `sbcl` is NOT on PATH after Roswell; use `ros -e`. Windows needs ASDF/QL too.
   test:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            label: linux-amd64
-          - os: macos-latest
-            label: darwin-arm64
-          - os: windows-latest
-            label: windows-amd64
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
     env:
@@ -28,32 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install libuv/libev (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libuv1-dev libev-dev build-essential
-
-      - name: Install libuv/libev (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install libuv libev
-          echo "HOMEBREW_PREFIX=$(brew --prefix)" >> "$GITHUB_ENV"
-
-      - name: Install libuv + toolchain (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          choco install cmake mingw -y
-          .\scripts\build-libuv.ps1
-          $inc = Get-ChildItem -Path build -Recurse -Directory -Filter include |
-            Where-Object { Test-Path (Join-Path $_.FullName "uv.h") } |
-            Select-Object -First 1 -ExpandProperty FullName
-          "EVENT_PROTOCOL_UV_INCLUDE=$inc" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $lib = Resolve-Path "lib\windows-amd64"
-          "EVENT_PROTOCOL_NATIVE=$lib" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "Path=$lib;C:\ProgramData\mingw64\mingw64\bin;$env:Path" | Out-File -FilePath $env:GITHUB_ENV -Append
-
       - name: Setup Common Lisp (Roswell)
         uses: 40ants/setup-lisp@v4
         with:
@@ -61,9 +27,7 @@ jobs:
 
       - name: Install Quicklisp deps
         shell: bash
-        run: |
-          ros install cffi
-          ros install rove
+        run: ros install rove
 
       - name: Protocol tests
         shell: bash
@@ -72,49 +36,18 @@ jobs:
               -e '(asdf:test-system "event-protocol")' \
               -q
 
-      - name: Conformance libuv
-        shell: bash
-        run: |
-          export HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
-          ros -e '(asdf:load-asd #p"event-protocol.asd")' \
-              -e '(asdf:load-asd #p"event-backend-libuv.asd")' \
-              -e '(asdf:test-system "event-protocol/conformance")' \
-              -q
-
-      - name: Conformance libev (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          export HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-/opt/homebrew}"
-          ros -e '(asdf:load-asd #p"event-protocol.asd")' \
-              -e '(asdf:load-asd #p"event-backend-libev.asd")' \
-              -e '(asdf:test-system "event-protocol/conformance/libev")' \
-              -q
-
-  # ── Linux test image (reproducible; no Roswell bootstrap) ──
-  # Common CL CI image: https://hub.docker.com/r/fukamachi/sbcl
   test-linux-image:
     runs-on: ubuntu-latest
     container:
       image: fukamachi/sbcl:latest-ubuntu
     steps:
-      - name: Install natives + QL deps
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            libuv1-dev libev-dev build-essential git ca-certificates
-          sbcl --non-interactive \
-            --eval '(ql:quickload (:cffi :rove) :silent t)' \
-            --quit
+      - name: QL deps
+        run: sbcl --non-interactive --eval '(ql:quickload :rove :silent t)' --quit
 
       - uses: actions/checkout@v4
 
-      - name: Protocol + conformance (libuv + libev)
+      - name: Protocol tests
         run: |
           sbcl --non-interactive \
             --eval '(asdf:load-asd #p"event-protocol.asd")' \
-            --eval '(asdf:load-asd #p"event-backend-libuv.asd")' \
-            --eval '(asdf:load-asd #p"event-backend-libev.asd")' \
-            --eval '(asdf:test-system "event-protocol")' \
-            --eval '(asdf:test-system "event-protocol/conformance")' \
-            --eval '(asdf:test-system "event-protocol/conformance/libev")'
+            --eval '(asdf:test-system "event-protocol")'
