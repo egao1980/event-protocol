@@ -134,13 +134,16 @@
   (call-next-method)
   (let ((ptr (libev-handle-ptr handle))
         (loop (event-handle-loop handle)))
-    (case (libev-handle-kind handle)
-      (:timer (ignore-errors (ev-timer-stop (libev-loop-ptr loop) ptr)))
-      (:idle (ignore-errors (ev-idle-stop (libev-loop-ptr loop) ptr)))
-      (:io (ignore-errors (ev-io-stop (libev-loop-ptr loop) ptr))))
-    (%unregister ptr)
-    (ignore-errors (foreign-free ptr)))
+    ;; Idempotent: callbacks free the watcher after fire.
+    (when (and (pointerp ptr) (not (null-pointer-p ptr)) (%lookup ptr))
+      (case (libev-handle-kind handle)
+        (:timer (ignore-errors (ev-timer-stop (libev-loop-ptr loop) ptr)))
+        (:idle (ignore-errors (ev-idle-stop (libev-loop-ptr loop) ptr)))
+        (:io (ignore-errors (ev-io-stop (libev-loop-ptr loop) ptr))))
+      (%unregister ptr)
+      (ignore-errors (foreign-free ptr))))
   handle)
+
 
 (defmethod register-io ((backend libev-backend) (loop libev-loop) fd direction callback &key)
   (let* ((ptr (foreign-alloc :uint8 :count (foreign-type-size '(:struct ev-io))))

@@ -129,12 +129,15 @@
 (defmethod cancel ((backend libuv-backend) (handle libuv-handle))
   (call-next-method)
   (let ((ptr (libuv-handle-ptr handle)))
-    (case (libuv-handle-kind handle)
-      (:timer (ignore-errors (uv-timer-stop ptr)))
-      (:idle (ignore-errors (uv-idle-stop ptr)))
-      (:poll (ignore-errors (uv-poll-stop ptr))))
-    (%close-handle ptr))
+    ;; Idempotent: timer/idle callbacks already uv_close + free the handle.
+    (when (and (pointerp ptr) (not (null-pointer-p ptr)) (%lookup ptr))
+      (case (libuv-handle-kind handle)
+        (:timer (ignore-errors (uv-timer-stop ptr)))
+        (:idle (ignore-errors (uv-idle-stop ptr)))
+        (:poll (ignore-errors (uv-poll-stop ptr))))
+      (%close-handle ptr)))
   handle)
+
 
 (defmethod register-io ((backend libuv-backend) (loop libuv-loop) fd direction callback &key)
   (let* ((ptr (foreign-alloc :uint8 :count (uv-handle-size +uv-poll+)))

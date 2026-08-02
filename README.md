@@ -42,4 +42,10 @@ sbcl --eval '(asdf:load-asd "event-backend-libev.asd")' \
      --eval '(asdf:test-system "event-protocol/conformance/libev")'
 ```
 
+## Conformance provenance
+
+Case ideas from **CPython asyncio** (PSF) and **libuv / Node** (MIT) — see
+[`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md). Original
+Rove tests; no upstream sources vendored.
+
 Tracking: [cl-stack#16](https://github.com/egao1980/cl-stack/issues/16) · [#17](https://github.com/egao1980/cl-stack/issues/17) · [#18](https://github.com/egao1980/cl-stack/issues/18) (parent [#2](https://github.com/egao1980/cl-stack/issues/2)).

@@ -26,6 +26,10 @@
   :serial t
   :components ((:file "package")
                (:file "suite")
+               (:file "asyncio-call")
+               (:file "asyncio-io")
+               (:file "wake-thread")
+               (:file "libuv-loop")
                (:file "libuv-test"))
   :perform (test-op (o c) (symbol-call :rove :run c)))
 
@@ -36,5 +40,9 @@
   :serial t
   :components ((:file "package")
                (:file "suite")
+               (:file "asyncio-call")
+               (:file "asyncio-io")
+               (:file "wake-thread")
+               (:file "libuv-loop")
                (:file "libev-test"))
   :perform (test-op (o c) (symbol-call :rove :run c)))
