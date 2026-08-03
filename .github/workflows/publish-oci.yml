@@ -49,7 +49,8 @@ jobs:
         run: |
           STAGING="${RUNNER_TEMP}/event-protocol-src"
           mkdir -p "$STAGING"
-          cp -a event-protocol.asd src LICENSE README.md "$STAGING/"
+          # Include tests/ so consumers can load event-protocol/conformance (backend CI).
+          cp -a event-protocol.asd src tests LICENSE README.md "$STAGING/"
           echo "STAGING=$STAGING" >> "$GITHUB_ENV"
 
       - name: Install SBCL + Quicklisp

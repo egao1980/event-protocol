@@ -35,7 +35,9 @@
                :description "Tiny CLOS event-loop protocol for cl-stack (generics + conditions)"
                :author "egao1980"
                :depends-on '()
-               :provides '("event-protocol")))
+               :provides '("event-protocol"
+                           "event-protocol/tests"
+                           "event-protocol/conformance")))
        (result (cl-repository-packager/build-matrix:build-package spec)))
   (format t "~%Publishing ~a:~a (source-only) to ~a/~a~%"
           name version registry-url namespace)
