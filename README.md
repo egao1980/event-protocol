@@ -30,7 +30,7 @@ Provenance: [`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md)
 1. New repo `event-backend-<name>` depending on `event-protocol` (+ natives/overlays as needed).
 2. Implement the generics on an `event-backend` subclass (`run` / `defer` / `sleep*` / `cancel` / `register-io` / `wake`).
 3. Test system sets `event-protocol/conformance:*test-backend-maker*` to a zero-arg thunk that returns a fresh backend, then `(asdf:test-system …)` / `rove:run` of `event-protocol/conformance`.
-4. CI matrix: checkout this repo as a sibling (or qlot `local`), install natives, run conformance. Optional OCI publish via cl-repository reusable workflow (`native-<os>-<arch>` artifacts; nested `lib/` + `grovel/` when shipping `cffi-grovel-output`).
+4. CI: pull `event-protocol` from `ghcr.io/egao1980/cl-systems` via cl-repo (OCI includes `event-protocol/conformance`). Install natives / overlays, run conformance. Optional OCI publish via cl-repository reusable workflow (`native-<os>-<arch>` artifacts; nested `lib/` + `grovel/` when shipping `cffi-grovel-output`).
 5. Document the system in the cl-stack event brief; do **not** add a plugin registry.
 
 ## CI
