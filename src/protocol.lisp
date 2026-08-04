@@ -67,6 +67,17 @@ Returns an EVENT-HANDLE.")
     (declare (ignore loop fd direction callback))
     (%unsupported backend 'register-io)))
 
+(defgeneric update-io (backend handle direction &key callback)
+  (:documentation "Change interest on an existing REGISTER-IO handle without
+destroying it. DIRECTION is :READ, :WRITE, :READ-WRITE, or :NONE (stop interest,
+keep the handle for later UPDATE-IO). Optional CALLBACK replaces the prior one.
+
+Backends that watch FDs (libuv poll / libev io) must implement this — cancel +
+re-register-io on the same FD races with async close (libuv UV_EEXIST).")
+  (:method ((backend event-backend) handle direction &key callback)
+    (declare (ignore handle direction callback))
+    (%unsupported backend 'update-io)))
+
 (defgeneric wake (backend loop)
   (:documentation "Wake LOOP from another thread so deferred work can run.")
   (:method ((backend event-backend) loop)

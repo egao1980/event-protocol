@@ -91,3 +91,38 @@
         (%close-fd read-fd)
         (%close-fd write-fd)))
     (ok (member :ok seen))))
+
+(deftest update-io-changes-direction
+  "update-io switches interest on the same handle (no second register-io)."
+  #+windows
+  (skip "Unix pipe")
+  #-windows
+  (let ((seen nil) io-handle watchdog)
+    (multiple-value-bind (read-fd write-fd) (%unix-pipe)
+      (unless read-fd (error "unix-pipe failed"))
+      (unwind-protect
+           (with-test-loop (backend loop)
+             (setf io-handle
+                   (register-io
+                    backend loop read-fd :write
+                    (lambda (status)
+                      (declare (ignore status))
+                      (push :unexpected seen)
+                      (stop backend loop))))
+             ;; Drop write interest, then watch for readability — same handle.
+             (update-io backend io-handle :none)
+             (update-io backend io-handle :read
+                        :callback
+                        (lambda (status)
+                          (push status seen)
+                          (when io-handle (cancel backend io-handle))
+                          (when watchdog (cancel backend watchdog))
+                          (stop backend loop)))
+             (%write-byte write-fd 66)
+             (setf watchdog
+                   (sleep* backend loop 0.5 :callback (lambda () (stop backend loop))))
+             (run backend loop :stop-when-idle t))
+        (%close-fd read-fd)
+        (%close-fd write-fd)))
+    (ok (member :ok seen))
+    (ok (not (member :unexpected seen)))))

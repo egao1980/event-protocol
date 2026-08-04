@@ -25,6 +25,7 @@
    #:sleep*
    #:cancel
    #:register-io
+   #:update-io
    #:wake
    ;; conditions
    #:event-error
