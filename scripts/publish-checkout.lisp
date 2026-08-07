@@ -36,10 +36,10 @@
              (format nil "https://~a" registry-url) :auth auth))
        (spec (cl-repository-packager/asdf-plugin:auto-package-spec system-name))
        (result nil))
-  ;; One GHCR package per owning repo — never auto-publish *-test secondaries
-  ;; (those are often still ACL-linked to cl-stack-systems).
+  ;; Primary + conformance (backends depend on event-protocol/conformance).
+  ;; Never publish *-test secondaries (ACL / duplicate-install traps).
   (setf (cl-repository-packager/build-matrix:package-spec-provides spec)
-        (list system-name))
+        (list system-name "event-protocol/conformance"))
   (setf (cl-repository-packager/build-matrix:package-spec-version spec) version)
   (setf result (cl-repository-packager/build-matrix:build-package spec))
   (format t "~&Publishing ~a/~a:~a~%" namespace system-name version)
