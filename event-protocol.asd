@@ -1,5 +1,5 @@
 (defsystem "event-protocol"
-  :version "0.1.1"
+  :version "0.1.2"
   :description "Tiny CLOS event-loop protocol for cl-stack (generics + conditions)"
   :author "egao1980"
   :license "MIT"
