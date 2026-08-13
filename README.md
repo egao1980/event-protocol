@@ -35,9 +35,10 @@ Provenance: [`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md)
 
 ## CI
 
-Same bootstrap as [`cl-repository`](https://github.com/egao1980/cl-repository): Roswell
-`install-for-ci.sh` → pinned `sbcl-bin` → `qlot install` → `qlot exec ros`. Backend CI
-lives in the backend repos.
+Standard cl-repository shape: Roswell `install-for-ci.sh` → pinned `sbcl-bin` →
+OCI-bootstrapped `cl-repository-client` → `scripts/ci-install.lisp` (deps from
+`ghcr.io/egao1980/cl-systems`) → `scripts/ci-test.lisp`. Backend CI lives in the
+backend repos.
 
 Tracking: [cl-stack#15](https://github.com/egao1980/cl-stack/issues/15) · [#2](https://github.com/egao1980/cl-stack/issues/2) · [#18](https://github.com/egao1980/cl-stack/issues/18).
 
