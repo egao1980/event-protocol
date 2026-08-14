@@ -6,15 +6,12 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Unix: cl-repository-style (install-for-ci → sbcl-bin → qlot).
-# Windows: Roswell zip; skip qlot (sb-posix:symlink missing on Win SBCL).
-# Pass GITHUB_TOKEN so any GitHub API use is authenticated (5k/hr vs 60/hr).
 concurrency:
   group: event-protocol-test-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  SBCL_VERSION: 2.4.11
+  SBCL_VERSION: 2.6.7
   ROSWELL_VERSION: "26.02.116"
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -24,60 +21,26 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
     runs-on: ${{ matrix.os }}
-
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Roswell (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          curl -sL https://raw.githubusercontent.com/roswell/roswell/master/scripts/install-for-ci.sh | bash
-          echo "$HOME/.roswell/bin" >> "$GITHUB_PATH"
+      - uses: egao1980/cl-repository/.github/actions/setup-client@main
 
-      - name: Install Roswell (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          curl -sL "https://github.com/roswell/roswell/releases/download/v${ROSWELL_VERSION}/roswell_${ROSWELL_VERSION}_amd64.zip" \
-            -o /tmp/roswell.zip
-          rm -rf /c/roswell
-          mkdir -p /c/roswell
-          unzip -qo /tmp/roswell.zip -d /c/roswell
-          echo "/c/roswell/roswell" >> "$GITHUB_PATH"
-          echo "$HOME/.roswell/bin" >> "$GITHUB_PATH"
-          /c/roswell/roswell/ros.exe version
+      - uses: egao1980/cl-repository/.github/actions/setup-roswell@main
+        with:
+          sbcl-version: ${{ env.SBCL_VERSION }}
+          roswell-version: ${{ env.ROSWELL_VERSION }}
 
-      - name: Install SBCL
+      - name: cl-repo install deps
         shell: bash
         run: |
-          ros install "sbcl-bin/$SBCL_VERSION"
-          ros use "sbcl-bin/$SBCL_VERSION"
+          ros -l scripts/ci-install.lisp -q
 
-      - name: Install dependencies (Unix)
-        if: runner.os != 'Windows'
+      - name: Test
         shell: bash
         run: |
-          ros install qlot
-          qlot install
-
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          ros install rove
-
-      - name: Test event-protocol (Unix)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          qlot exec ros -S . -e '(asdf:test-system "event-protocol")'
-
-      - name: Test event-protocol (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          export CL_SOURCE_REGISTRY="$(pwd)//:"
-          ros -S . -e '(asdf:test-system "event-protocol")' -q
+          ros -l scripts/ci-test.lisp -q
