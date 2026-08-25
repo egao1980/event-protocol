@@ -35,20 +35,15 @@ Provenance: [`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md)
 
 ## CI
 
-Standard cl-repository shape: Roswell `install-for-ci.sh` → pinned `sbcl-bin` →
-OCI-bootstrapped `cl-repository-client` → `scripts/ci-install.lisp` (deps from
-`ghcr.io/egao1980/cl-systems`) → `scripts/ci-test.lisp`. Backend CI lives in the
-backend repos.
+CI: canned [`cl-repository`](https://github.com/egao1980/cl-repository) (`test-system.yml` / `setup-client` + `ci`). Deps from `ghcr.io/egao1980/cl-systems`. Backend CI lives in the backend repos.
 
 Tracking: [cl-stack#15](https://github.com/egao1980/cl-stack/issues/15) · [#2](https://github.com/egao1980/cl-stack/issues/2) · [#18](https://github.com/egao1980/cl-stack/issues/18).
 
 ## Publish
 
-Source-only OCI publish is centralized in [`cl-stack-systems`](https://github.com/egao1980/cl-stack-systems)
-(`imports/event-protocol/qlfile` pin + shared `publish.yml`). Packaging metadata lives in the `.asd`
-(`auto-package-spec`):
+Owning-repo canned [`publish-source.yml`](https://github.com/egao1980/cl-repository/blob/main/.github/workflows/publish-source.yml):
 
 ```bash
-gh workflow run publish.yml -R egao1980/cl-stack-systems -f import=event-protocol
+gh workflow run publish-checkout.yml -R egao1980/event-protocol
 ```
 
