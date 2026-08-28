@@ -84,6 +84,41 @@ re-register-io on the same FD races with async close (libuv UV_EEXIST).")
     (declare (ignore loop))
     (%unsupported backend 'wake)))
 
+(defgeneric wake-call (backend loop function)
+  (:documentation "Enqueue FUNCTION on LOOP and wake it (thread-safe).
+asyncio call_soon_threadsafe. FUNCTION runs on the loop thread.")
+  (:method ((backend event-backend) loop function)
+    (declare (ignore loop function))
+    (%unsupported backend 'wake-call)))
+
+(defgeneric submit (backend loop thunk &key callback error-callback executor)
+  (:documentation "THUNK off LOOP's thread. CALLBACK/ERROR-CALLBACK on LOOP via WAKE-CALL.
+
+EXECUTOR is a function of one thunk (the hop-off runner), or NIL.
+Protocol default: EXECUTOR must be a function — hop-off, then hop-back via WAKE-CALL.
+NIL is unsupported here: backends specialize and supply their own default runner
+(typically a per-loop pool from cl-stack-executors, or any other thunk runner).
+submit does not name a pool type. Do not specialize libuv onto uv_queue_work
+for blocking I/O.")
+  (:method ((backend event-backend) loop thunk &key callback error-callback executor)
+    (check-type thunk function)
+    (when callback (check-type callback function))
+    (when error-callback (check-type error-callback function))
+    (unless executor
+      (%unsupported backend 'submit loop))
+    (check-type executor function)
+    (funcall executor
+             (lambda ()
+               (handler-case
+                   (let ((value (funcall thunk)))
+                     (when callback
+                       (wake-call backend loop (lambda () (funcall callback value)))))
+                 (error (e)
+                   (if error-callback
+                       (wake-call backend loop (lambda () (funcall error-callback e)))
+                       (warn "event-protocol submit: unhandled error: ~A" e))))))
+    (values)))
+
 (defmethod make-event-loop :around ((backend event-backend) &key)
   (let ((loop (call-next-method)))
     (check-type loop event-loop)

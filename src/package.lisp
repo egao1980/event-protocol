@@ -27,6 +27,8 @@
    #:register-io
    #:update-io
    #:wake
+   #:wake-call
+   #:submit
    ;; conditions
    #:event-error
    #:event-error-backend

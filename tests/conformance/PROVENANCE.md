@@ -19,7 +19,8 @@ Mapped protocol ops:
 |---------|----------------|
 | `call_soon` | `defer` / `call-soon` |
 | `call_later` | `sleep*` |
-| `call_soon_threadsafe` | `wake` + `wake-call` |
+| `call_soon_threadsafe` | `wake-call` |
+| `run_in_executor` | `submit` |
 | `add_reader` / cancel | `register-io` + `cancel` |
 | `loop.stop` | `stop` |
 
