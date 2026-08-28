@@ -18,10 +18,7 @@
       (funcall fn loop))))
 
 (defun backend-wake-call (backend loop function)
-  (let* ((pkg (symbol-package (class-name (class-of backend))))
-         (fn (find-symbol "WAKE-CALL" pkg)))
-    (assert fn () "WAKE-CALL missing in ~A" pkg)
-    (funcall fn loop function)))
+  (wake-call backend loop function))
 
 (defmacro with-test-loop ((backend loop) &body body)
   "Bind BACKEND/LOOP, run BODY under WITH-EVENT-BACKEND, always CLOSE-LOOP."

@@ -9,6 +9,7 @@ Generics + conditions + shared conformance suite. **No natives here.**
 | Protocol | this repo |
 | Default backend (Windows-primary) | [`egao1980/event-backend-libuv`](https://github.com/egao1980/event-backend-libuv) |
 | Second backend (Unix) | [`egao1980/event-backend-libev`](https://github.com/egao1980/event-backend-libev) |
+| Optional BT pools (backends, not this protocol) | [`egao1980/cl-stack-executors`](https://github.com/egao1980/cl-stack-executors) |
 
 **Brief:** [cl-stack `docs/capabilities/event-protocol.md`](https://github.com/egao1980/cl-stack/blob/main/docs/capabilities/event-protocol.md)
 
@@ -28,7 +29,7 @@ Provenance: [`tests/conformance/PROVENANCE.md`](tests/conformance/PROVENANCE.md)
 ## Adding backend C later
 
 1. New repo `event-backend-<name>` depending on `event-protocol` (+ natives/overlays as needed).
-2. Implement the generics on an `event-backend` subclass (`run` / `defer` / `sleep*` / `cancel` / `register-io` / `wake`).
+2. Implement the generics on an `event-backend` subclass (`run` / `defer` / `sleep*` / `cancel` / `register-io` / `wake` / `wake-call`). `submit` default method is hop-back only (`:executor` a function of one thunk). The default hop-off runner is a backend choice — typically a per-loop [`cl-stack-executors`](https://github.com/egao1980/cl-stack-executors) thread pool. Do not put a pool in this repo; do not specialize libuv onto `uv_queue_work` for blocking I/O.
 3. Test system sets `event-protocol/conformance:*test-backend-maker*` to a zero-arg thunk that returns a fresh backend, then `(asdf:test-system …)` / `rove:run` of `event-protocol/conformance`.
 4. CI: pull `event-protocol` from `ghcr.io/egao1980/cl-systems` via cl-repo (OCI includes `event-protocol/conformance`). Install natives / overlays, run conformance. Optional OCI publish via cl-repository reusable workflow (`native-<os>-<arch>` artifacts; nested `lib/` + `grovel/` when shipping `cffi-grovel-output`).
 5. Document the system in the cl-stack event brief; do **not** add a plugin registry.

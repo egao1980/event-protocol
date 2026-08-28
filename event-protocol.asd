@@ -1,5 +1,5 @@
 (defsystem "event-protocol"
-  :version "0.1.2"
+  :version "0.2.0"
   :description "Tiny CLOS event-loop protocol for cl-stack (generics + conditions)"
   :author "egao1980"
   :license "MIT"
@@ -33,5 +33,6 @@
                (:file "asyncio-call")
                (:file "asyncio-io")
                (:file "wake-thread")
+               (:file "submit")
                (:file "libuv-loop")))
   ;; Backends set *test-backend-maker* then (rove:run (asdf:find-system "event-protocol/conformance")).

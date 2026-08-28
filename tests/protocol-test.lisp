@@ -34,11 +34,19 @@
                           (funcall fn))))
                      (stop-when-idle
                       (setf (null-loop-running-p loop) nil))
-                     (t (return))))))
+                     (t
+                      (sleep 0.001))))))
   loop)
 
 (defmethod stop ((backend null-backend) (loop null-loop))
   (setf (null-loop-running-p loop) nil)
+  loop)
+
+(defmethod wake ((backend null-backend) (loop null-loop))
+  loop)
+
+(defmethod wake-call ((backend null-backend) (loop null-loop) function)
+  (defer backend loop function)
   loop)
 
 (deftest null-backend-defer-and-run
@@ -64,13 +72,62 @@
     (ok (null seen))
     (ok (event-handle-canceled-p h))))
 
-(deftest unsupported-wake
+(deftest unsupported-register-io
   (let ((backend (make-instance 'null-backend))
         (loop (make-event-loop (make-instance 'null-backend))))
-    (ok (signals (wake backend loop) 'unsupported-operation))))
+    (ok (signals (register-io backend loop 0 :read (lambda ()))
+                 'unsupported-operation))))
 
 (deftest backend-name-and-dynamics
   (let ((b (make-instance 'null-backend)))
     (ok (string= (backend-name b) "null"))
     (with-event-backend (b)
       (ok (eq *event-backend* b)))))
+
+(deftest submit-without-executor-unsupported
+  (let* ((backend (make-instance 'null-backend))
+         (loop (make-event-loop backend)))
+    (ok (signals (submit backend loop (lambda () 1))
+                 'unsupported-operation))))
+
+(deftest submit-inline-executor
+  " :executor (lambda (fn) (funcall fn)) — tests / deterministic hop-back."
+  (let* ((backend (make-instance 'null-backend))
+         (loop (make-event-loop backend))
+         (seen nil))
+    (with-event-backend (backend)
+      (submit backend loop (lambda () 7)
+              :callback (lambda (v) (push v seen))
+              :executor (lambda (fn) (funcall fn)))
+      (run backend loop :stop-when-idle t))
+    (ok (equal seen '(7)))))
+
+(deftest submit-error-callback
+  (let* ((backend (make-instance 'null-backend))
+         (loop (make-event-loop backend))
+         (seen nil)
+         (err (make-condition 'simple-error :format-control "boom")))
+    (with-event-backend (backend)
+      (submit backend loop (lambda () (error err))
+              :callback (lambda (v) (push (list :ok v) seen))
+              :error-callback (lambda (e)
+                                (push (list :err e) seen)
+                                (stop backend loop))
+              :executor (lambda (fn) (funcall fn)))
+      (run backend loop :stop-when-idle nil))
+    (ok (equal seen (list (list :err err))))))
+
+(deftest submit-escape-hatch-function
+  (let* ((backend (make-instance 'null-backend))
+         (loop (make-event-loop backend))
+         (seen nil)
+         (ran nil))
+    (with-event-backend (backend)
+      (submit backend loop (lambda () :ok)
+              :callback (lambda (v) (push v seen))
+              :executor (lambda (fn)
+                          (setf ran t)
+                          (funcall fn)))
+      (run backend loop :stop-when-idle t))
+    (ok ran)
+    (ok (equal seen '(:ok)))))
