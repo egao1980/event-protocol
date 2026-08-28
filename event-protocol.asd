@@ -10,7 +10,9 @@
   :components ((:file "package")
                (:file "conditions")
                (:file "protocol"))
-  :in-order-to ((test-op (test-op "event-protocol/tests"))))
+  :in-order-to ((test-op (test-op "event-protocol/tests")))
+  :properties
+  (:cl-repo (:provides ("event-protocol" "event-protocol/conformance"))))
 
 (defsystem "event-protocol/tests"
   :depends-on ("event-protocol" "rove")
