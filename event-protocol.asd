@@ -1,5 +1,5 @@
 (defsystem "event-protocol"
-  :version "0.2.0"
+  :version "0.2.1"
   :description "Tiny CLOS event-loop protocol for cl-stack (generics + conditions)"
   :author "egao1980"
   :license "MIT"
@@ -12,7 +12,8 @@
                (:file "protocol"))
   :in-order-to ((test-op (test-op "event-protocol/tests")))
   :properties
-  (:cl-repo (:provides ("event-protocol" "event-protocol/conformance"))))
+  (:cl-repo (:provides ("event-protocol" "event-protocol/conformance"
+                       "event-protocol/promises"))))
 
 (defsystem "event-protocol/tests"
   :depends-on ("event-protocol" "rove")
@@ -38,3 +39,23 @@
                (:file "submit")
                (:file "libuv-loop")))
   ;; Backends set *test-backend-maker* then (rove:run (asdf:find-system "event-protocol/conformance")).
+
+;;; Promise facade — Blackbird stays out of the core system.
+(defsystem "event-protocol/promises"
+  :description "Blackbird promise facade over event-protocol (callback + cancel)"
+  :depends-on ("event-protocol" "blackbird")
+  :serial t
+  :pathname "src"
+  :components ((:file "promises-package")
+               (:file "promises"))
+  :in-order-to ((test-op (test-op "event-protocol/promises/tests"))))
+
+(defsystem "event-protocol/promises/tests"
+  :depends-on ("event-protocol/promises" "rove")
+  :pathname "tests/promises"
+  :serial t
+  :components ((:file "package")
+               (:file "promises-test"))
+  :perform (test-op (o c)
+             (unless (symbol-call :rove :run c)
+               (error "tests failed for ~A" (component-name c)))))
