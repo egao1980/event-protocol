@@ -93,7 +93,8 @@
         (ok (eq :ok
                 (await (lambda (resolve reject)
                          (declare (ignore reject))
-                         (defer backend loop (lambda () (resolve :ok)))))))))))
+                         (defer backend loop
+                                (lambda () (funcall resolve :ok)))))))))))
 
 (deftest await-timeout
   (let* ((backend (make-instance 'null-backend))
