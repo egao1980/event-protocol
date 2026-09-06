@@ -30,7 +30,7 @@
 
 (defun await (start-fn &key timeout)
   "Drive the bound loop until START-FN's resolve/reject fires.
-   START-FN is (lambda (resolve reject) ...); FUNCALL those callbacks.")
+   START-FN is (lambda (resolve reject) ...); FUNCALL those callbacks."
   (check-type start-fn function)
   (multiple-value-bind (eb el) (%event-context)
     (let ((result nil)
