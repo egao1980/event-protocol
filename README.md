@@ -13,13 +13,17 @@ Generics + conditions + shared conformance suite. **No natives here.**
 
 **Brief:** [cl-stack `docs/capabilities/event-protocol.md`](https://github.com/egao1980/cl-stack/blob/main/docs/capabilities/event-protocol.md)
 
-App DX (promises) lives in a later facade — backends stay callback + cancel tokens.
+App DX (promises) is the secondary ASDF system `event-protocol/promises`
+(package `event-protocol/promises`, nickname `stack-event-promises`):
+`defer-promise`, `sleep-promise`, `submit-promise`, `cancel-promise`, `await`.
+Blackbird lives only in that system. **Backends stay callback + cancel tokens.**
 
 ## Load / test
 
 ```bash
 sbcl --eval '(asdf:load-asd "event-protocol.asd")' \
-     --eval '(asdf:test-system "event-protocol")'
+     --eval '(asdf:test-system "event-protocol")' \
+     --eval '(asdf:test-system "event-protocol/promises")'
 ```
 
 Conformance suite: ASDF system `event-protocol/conformance` (set
