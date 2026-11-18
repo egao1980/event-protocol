@@ -36,6 +36,18 @@
 (defgeneric make-event-loop (backend &key)
   (:documentation "Create a new EVENT-LOOP for BACKEND."))
 
+(defgeneric close-event-loop (backend loop)
+  (:documentation "Release LOOP's native resources (descriptor, wake handle, submit
+threads) once RUN has returned. Handles still pending on LOOP are canceled
+without running their callbacks. Idempotent. After it, LOOP takes no more work.
+
+A caller that made LOOP with MAKE-EVENT-LOOP owns it and must close it:
+an unclosed libuv loop keeps its kqueue/epoll descriptor for the life of the
+process.")
+  (:method ((backend event-backend) loop)
+    (declare (ignore loop))
+    nil))
+
 (defgeneric run (backend loop &key stop-when-idle)
   (:documentation "Enter the event loop until stopped or idle (when STOP-WHEN-IDLE)."))
 

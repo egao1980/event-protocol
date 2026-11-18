@@ -44,3 +44,28 @@
       (sleep* backend loop 0.04 :callback (lambda () (push :ok seen)))
       (run backend loop :stop-when-idle t))
     (ok (equal seen '(:ok)))))
+
+(deftest close-event-loop-drops-pending-handles
+  "A loop closed with a timer and an idle still pending releases them
+without running them, returns promptly, and a second close is a no-op."
+  (let ((seen nil)
+        (backend (funcall *test-backend-maker*)))
+    (let ((loop (make-event-loop backend))
+          (t0 (%now)))
+      (with-event-backend (backend)
+        (sleep* backend loop 30 :callback (lambda () (push :timer seen)))
+        (defer backend loop (lambda () (push :idle seen)))
+        (backend-close-loop backend loop)
+        (backend-close-loop backend loop))
+      (ok (< (- (%now) t0) 5))
+      (ok (null seen)))))
+
+(deftest close-event-loop-after-run
+  "Many make/run/close cycles: each loop is released (no descriptor growth
+breaks a later loop)."
+  (let ((n 0))
+    (dotimes (i 200)
+      (with-test-loop (backend loop)
+        (sleep* backend loop 0 :callback (lambda () (incf n)))
+        (run backend loop :stop-when-idle t)))
+    (ok (= n 200))))
