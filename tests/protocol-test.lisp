@@ -131,3 +131,10 @@
       (run backend loop :stop-when-idle t))
     (ok ran)
     (ok (equal seen '(:ok)))))
+
+(deftest close-event-loop-default-noop
+  "A backend with nothing native to release inherits a no-op CLOSE-EVENT-LOOP."
+  (let* ((backend (make-instance 'null-backend))
+         (loop (make-event-loop backend)))
+    (ok (null (close-event-loop backend loop)))
+    (ok (null (close-event-loop backend loop)))))

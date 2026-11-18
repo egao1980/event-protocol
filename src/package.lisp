@@ -18,6 +18,7 @@
    ;; protocol generics
    #:backend-name
    #:make-event-loop
+   #:close-event-loop
    #:run
    #:stop
    #:defer
