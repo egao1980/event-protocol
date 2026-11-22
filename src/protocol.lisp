@@ -74,7 +74,22 @@ Facade layers may wrap this as a promise."))
 
 (defgeneric register-io (backend loop fd direction callback &key)
   (:documentation "Register interest in FD. DIRECTION is :READ, :WRITE, or :READ-WRITE.
-Returns an EVENT-HANDLE.")
+Returns an EVENT-HANDLE.
+
+CALLBACK is called on the loop thread as (STATUS &optional CODE) each time
+FD is ready, and must accept both forms:
+
+  (funcall callback :ok)          FD is ready for DIRECTION.
+  (funcall callback :error)       the poll failed; no backend code.
+  (funcall callback :error code)  the poll failed; CODE is the backend's
+                                  status (event-backend-libuv: the negative
+                                  UV_E* code it got, e.g. UV_EBADF on POLLERR).
+
+After :ERROR the FD is in an unknown state: the owner should treat it as a
+connection failure, cancel the handle and close the FD. A backend that
+catches an error signalled from CALLBACK only warns, so a CALLBACK that
+cannot take two arguments loses the error and its owner never completes
+(http-backend-async#62).")
   (:method ((backend event-backend) loop fd direction callback &key)
     (declare (ignore loop fd direction callback))
     (%unsupported backend 'register-io)))
@@ -82,7 +97,8 @@ Returns an EVENT-HANDLE.")
 (defgeneric update-io (backend handle direction &key callback)
   (:documentation "Change interest on an existing REGISTER-IO handle without
 destroying it. DIRECTION is :READ, :WRITE, :READ-WRITE, or :NONE (stop interest,
-keep the handle for later UPDATE-IO). Optional CALLBACK replaces the prior one.
+keep the handle for later UPDATE-IO). Optional CALLBACK replaces the prior one
+and is called the same way as REGISTER-IO's: (STATUS &optional CODE).
 
 Backends that watch FDs (libuv poll / libev io) must implement this — cancel +
 re-register-io on the same FD races with async close (libuv UV_EEXIST).")

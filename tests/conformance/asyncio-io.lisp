@@ -42,7 +42,8 @@
                  (setf io-handle
                        (register-io
                         backend loop read-fd :read
-                        (lambda (status)
+                        (lambda (status &optional code)
+                          (declare (ignore code))
                           (push status seen)
                           (when io-handle (cancel backend io-handle))
                           (when watchdog (cancel backend watchdog))
@@ -66,7 +67,9 @@
                (with-test-loop (backend loop)
                  (setf io-handle
                        (register-io backend loop read-fd :read
-                                    (lambda (status) (push status seen))))
+                                    (lambda (status &optional code)
+                                      (declare (ignore code))
+                                      (push status seen))))
                  (cancel backend io-handle)
                  (sleep* backend loop 0.05 :callback (lambda ()))
                  (run backend loop :stop-when-idle t))
@@ -87,7 +90,8 @@
                  (setf io-handle
                        (register-io
                         backend loop write-fd :write
-                        (lambda (status)
+                        (lambda (status &optional code)
+                          (declare (ignore code))
                           (push status seen)
                           (when io-handle (cancel backend io-handle))
                           (when watchdog (cancel backend watchdog))
@@ -111,14 +115,15 @@
                  (setf io-handle
                        (register-io
                         backend loop read-fd :write
-                        (lambda (status)
-                          (declare (ignore status))
+                        (lambda (status &optional code)
+                          (declare (ignore status code))
                           (push :unexpected seen)
                           (stop backend loop))))
                  (update-io backend io-handle :none)
                  (update-io backend io-handle :read
                             :callback
-                            (lambda (status)
+                            (lambda (status &optional code)
+                              (declare (ignore code))
                               (push status seen)
                               (when io-handle (cancel backend io-handle))
                               (when watchdog (cancel backend watchdog))
