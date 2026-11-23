@@ -15,15 +15,46 @@ Generics + conditions + shared conformance suite. **No natives here.**
 
 App DX (promises) is the secondary ASDF system `event-protocol/promises`
 (package `event-protocol/promises`, nickname `stack-event-promises`):
-`defer-promise`, `sleep-promise`, `submit-promise`, `cancel-promise`, `await`.
-Blackbird lives only in that system. **Backends stay callback + cancel tokens.**
+`defer-promise`, `sleep-promise`, `submit-promise`, `cancel-promise`, `await`,
+`gather`, `run-promise`. Blackbird lives only in that system. **Backends stay
+callback + cancel tokens.**
+
+## Promises from synchronous code (asyncio shape)
+
+| Python | event-protocol/promises |
+|--------|-------------------------|
+| `asyncio.run(main())` | `(run-promise (lambda () …promise…) :backend b)` (fresh loop, bound, awaited, closed) |
+| `await aw` / `loop.run_until_complete(aw)` | `(await promise :timeout s)` on the bound loop |
+| `asyncio.gather(a, b, c)` | `(gather a b c)` (promise of the values, in argument order) |
+| `asyncio.wait_for(aw, s)` timeout | `await-timeout` (an `event-error`, `await-timeout-seconds`) |
+
+```lisp
+(asdf:load-system "event-protocol/promises")
+(asdf:load-system "event-backend-libuv")
+(asdf:load-system "cl-stack-http")
+
+(stack-event-promises:run-promise
+ (lambda ()
+   (stack-event-promises:gather
+    (stack-http:get-async "https://httpbin.org/get")
+    (stack-http:get-async "https://httpbin.org/uuid")))
+ :backend (event-backend-libuv:make-libuv-backend)
+ :timeout 30)
+;; => (#<HTTP-RESPONSE> #<HTTP-RESPONSE>)
+```
+
+`await` takes a Blackbird promise or a `(lambda (resolve reject) …)` starter.
+It runs the loop with `:stop-when-idle nil` and stops it as soon as the
+promise settles, so idle pooled connections or timers left on the loop do
+not hold it. A plain `(run backend loop)` waits for those. Its timeout timer
+is canceled when the promise settles first. `run-promise` closes its loop on
+every exit, which cancels any handles still pending on it. A THUNK that
+returns a plain value gets that value back.
 
 ## Load / test
 
 ```bash
-sbcl --eval '(asdf:load-asd "event-protocol.asd")' \
-     --eval '(asdf:test-system "event-protocol")' \
-     --eval '(asdf:test-system "event-protocol/promises")'
+cl-repo test        # event-protocol/tests + event-protocol/promises/tests
 ```
 
 Conformance suite: ASDF system `event-protocol/conformance` (set

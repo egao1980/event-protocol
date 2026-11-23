@@ -3,6 +3,10 @@
   (:nicknames #:stack-event-promises)
   (:shadowing-import-from #:event-protocol #:run)
   (:export #:await
+           #:await-timeout
+           #:await-timeout-seconds
+           #:gather
+           #:run-promise
            #:defer-promise
            #:sleep-promise
            #:submit-promise
