@@ -10,7 +10,7 @@
   :components ((:file "package")
                (:file "conditions")
                (:file "protocol"))
-  :in-order-to ((test-op (test-op "event-protocol/tests")))
+  :in-order-to ((test-op (test-op "event-protocol/tests" "event-protocol/promises/tests")))
   :properties
   (:cl-repo (:provides ("event-protocol" "event-protocol/conformance"
                        "event-protocol/promises"))))
@@ -55,7 +55,8 @@
   :pathname "tests/promises"
   :serial t
   :components ((:file "package")
-               (:file "promises-test"))
+               (:file "promises-test")
+               (:file "await-promise-test"))
   :perform (test-op (o c)
              (unless (symbol-call :rove :run c)
                (error "tests failed for ~A" (component-name c)))))
